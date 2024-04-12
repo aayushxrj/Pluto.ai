@@ -6,7 +6,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter, SentenceTran
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
-
 import chainlit as cl 
 from chainlit.types import AskFileResponse
 
@@ -52,13 +51,27 @@ def split_into_chunks(file: AskFileResponse):
     return token_split_texts
 
 # Store the data in form of embeddings
-def store_embeddings():
-    pass
+def store_embeddings(chunks):
+    embedding_function = SentenceTransformerEmbeddingFunction()
+
+    chroma_client = chromadb.Client()
+    chroma_collection = chroma_client.create_collection("doc_chroma_collection", embedding_function=embedding_function)
+
+    ids = [str(i) for i in range(len(chunks))]
+
+    chroma_collection.add(ids=ids, documents=chunks)
+    print(f"Size of chroma_collection: {chroma_collection.count()}")
+    return chroma_collection
+    
 
 
 # Retrieve data from the query
-def get_response():
-    pass
+def simple_retrieval(chroma_collection):
+    query = "What is Microsoft?"
+
+    results = chroma_collection.query(query_texts=[query], n_results=5)
+    retrieved_documents = results['documents'][0]
+    print(f"Retrieved documents: {retrieved_documents}")
 
 @cl.step
 def tool():
@@ -87,6 +100,12 @@ async def start():
 
     # Process the file and split into chunks
     chunks = split_into_chunks(file)
+
+    # Store the data in form of embeddings
+    chroma_collection = store_embeddings(chunks)
+    
+    # Retrieve data from the query
+    simple_retrieval(chroma_collection)
 
     msg.content = f"`{file.name}` processed. You can now ask questions!"
     await msg.update()
