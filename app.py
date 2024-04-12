@@ -1,14 +1,19 @@
 import os
-# from langchain.document_loaders import PyPDFLoader, TextLoader
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter, SentenceTransformersTokenTextSplitter
+from dotenv import load_dotenv
+load_dotenv()
 
-import chromadb
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ChatMessageHistory, ConversationBufferMemory
+from langchain_anthropic import ChatAnthropic
+from langchain.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 import chainlit as cl 
 from chainlit.types import AskFileResponse
 
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 welcome_message = """Welcome to the Pluto.ai ! To get started:
 1. Upload a PDF or text file
@@ -22,56 +27,49 @@ def process_file(file: AskFileResponse):
     elif file.type == "application/pdf":
         Loader = PyPDFLoader
 
-        loader = Loader(file.path)
-        pages = loader.load()
-        # print(pages[0].page_content)
-        return pages
+    loader = Loader(file.path)
+    pages = loader.load()
+    # print(pages[0].page_content)
+    return pages
 
 
 # Split the data into chunks
 def split_into_chunks(file: AskFileResponse):
     pages = process_file(file)
 
-
-    data = [page.page_content for page in pages]
-
     character_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", ". ", " ", ""],
         chunk_size=1000,
-        chunk_overlap=0
+        chunk_overlap=100
     )
-    character_split_texts = character_splitter.split_text('\n\n'.join(data))        
-    token_splitter = SentenceTransformersTokenTextSplitter(chunk_overlap=0, tokens_per_chunk=256)
+    splits = character_splitter.split_documents(pages)
+    
+    for i, doc in enumerate(splits):
+        doc.metadata["source"] = f"source_{i}"
+            
+    print(f"Number of chunks: {len(splits)}")
+    return splits
 
-    token_split_texts = []
-    for text in character_split_texts:
-        token_split_texts += token_splitter.split_text(text)
-
-    print(f"\nTotal chunks: {len(token_split_texts)}")
-    return token_split_texts
 
 # Store the data in form of embeddings
 def store_embeddings(chunks):
-    embedding_function = SentenceTransformerEmbeddingFunction()
-
-    chroma_client = chromadb.Client()
-    chroma_collection = chroma_client.create_collection("doc_chroma_collection", embedding_function=embedding_function)
-
-    ids = [str(i) for i in range(len(chunks))]
-
-    chroma_collection.add(ids=ids, documents=chunks)
-    print(f"Size of chroma_collection: {chroma_collection.count()}")
-    return chroma_collection
+    embedding_function = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     
-
+    # making a vectordb
+    vectordb = Chroma.from_documents(chunks, embedding_function)
+    print(f"Size of vectordb: {vectordb._collection.count()}")
+    return vectordb
 
 # Retrieve data from the query
-def simple_retrieval(chroma_collection):
-    query = "What is Microsoft?"
+# def simple_retrieval(vectordb,message: cl.Message):
+#     query = message.content   
 
-    results = chroma_collection.query(query_texts=[query], n_results=5)
-    retrieved_documents = results['documents'][0]
-    print(f"Retrieved documents: {retrieved_documents}")
+#     results = vectordb.similarity_search(query, n_results=5)
+#     retrieved_documents = results['documents'][0]
+#     print(results)
+#     print("\n\n")
+#     print(f"Retrieved documents: {retrieved_documents}")
+#     return results # debugging return 
 
 @cl.step
 def tool():
@@ -102,10 +100,26 @@ async def start():
     chunks = split_into_chunks(file)
 
     # Store the data in form of embeddings
-    chroma_collection = store_embeddings(chunks)
-    
+    vectordb = store_embeddings(chunks)
+
     # Retrieve data from the query
-    simple_retrieval(chroma_collection)
+    # retrived_documents = simple_retrieval(vectordb, cl.Message(content="What is the regression?"))
+
+    message_history = ChatMessageHistory()
+
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        output_key="answer",
+        chat_memory=message_history,
+        return_messages=True,
+    )
+    chain = ConversationalRetrievalChain.from_llm(
+        ChatAnthropic(temperature=0, model_name="claude-3-opus-20240229"),
+        chain_type="stuff",
+        retriever=vectordb.as_retriever(), 
+        memory=memory,
+        return_source_documents=True,
+    )
 
     msg.content = f"`{file.name}` processed. You can now ask questions!"
     await msg.update()
@@ -116,5 +130,11 @@ async def start():
 
 @cl.on_message
 async def main(message: cl.Message):
+
+    # chain = cl.user_session.get("chain")  # type: ConversationalRetrievalChain
+    # cb = cl.AsyncLangchainCallbackHandler()
+    # response = await chain.acall(message.content, callbacks=[cb])
+    # print(response)
+
     tool()
     await cl.Message(content="Response not working yet").send()
