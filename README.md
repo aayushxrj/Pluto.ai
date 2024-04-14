@@ -1,6 +1,8 @@
 # Pluto.ai
 
-Pluto.ai is a conversational Retrieval Augmented Generation (RAG) chatbot built with LangChain, Chainlit, and the Claude for question-answering from documents.
+Pluto.ai is a conversational Retrieval Augmented Generation (RAG) chatbot built with LangChain, Chainlit that uses Claude's capabilities for question-answering from documents.
+
+![Screenshot (747)](https://github.com/aayushxrj/Pluto.ai/assets/111623667/2cec03e1-1016-440f-875b-1901b34f166c)
 
 ## Quick Start
 
