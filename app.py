@@ -7,12 +7,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ChatMessageHistory, ConversationBufferMemory
 from langchain_anthropic import ChatAnthropic
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
 import chainlit as cl 
 from chainlit.types import AskFileResponse
 
+# For Approach 1
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from typing import Dict
@@ -58,7 +59,6 @@ def split_into_chunks(file: AskFileResponse):
     print(f"Number of chunks: {len(splits)}")
     return splits
 
-
 # Store the data in form of embeddings
 def store_embeddings(chunks):
     embedding_function = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -77,10 +77,9 @@ def simple_retrieval(vectordb, message: cl.Message):
 
     return retrieved_documents
 
-
 @cl.step
-def tool():
-    return "Chain of thought not working yet"
+def ChainOfThought():
+    return "Not working yet"
 
 
 @cl.on_chat_start
@@ -109,10 +108,7 @@ async def start():
     # Store the data in form of embeddings
     vectordb = store_embeddings(chunks)
 
-    # Retrieve data from the query
-    # retrived_documents = simple_retrieval(vectordb, cl.Message(content="What is the regression?"))
-    # print(retrived_documents)
-    
+
     message_history = ChatMessageHistory()
 
     memory = ConversationBufferMemory(
@@ -121,57 +117,95 @@ async def start():
         chat_memory=message_history,
         return_messages=True,
     )
+    # Approach 1 (low level approach)
+    # SYSTEM_TEMPLATE = """
+    # Answer the user's questions based on the below context. 
+    # If the context doesn't contain any relevant information to the question, don't make something up and just say "I don't know":
 
-    SYSTEM_TEMPLATE = """
-    Answer the user's questions based on the below context. 
-    If the context doesn't contain any relevant information to the question, don't make something up and just say "I don't know":
+    # <context>
+    # {context}
+    # </context>
+    # """
 
-    <context>
-    {context}
-    </context>
-    """
+    # question_answering_prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #         (
+    #             "system",
+    #             SYSTEM_TEMPLATE,
+    #         ),
+    #         MessagesPlaceholder(variable_name="messages"),
+            
+    #     ]
+    # )
 
-    question_answering_prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                SYSTEM_TEMPLATE,
-            ),
-            MessagesPlaceholder(variable_name="messages"),
-        ]
-    )
-
-    document_chain = create_stuff_documents_chain(llm, question_answering_prompt)
+    # document_chain = create_stuff_documents_chain(llm, question_answering_prompt)
 
     
-    def parse_retriever_input(params: Dict):
-        return params["messages"][-1].content
+    # def parse_retriever_input(params: Dict):
+    #     return params["messages"][-1].content
 
 
-    chain = RunnablePassthrough.assign(
-        context=parse_retriever_input | vectordb.as_retriever(k=5),
-    ).assign(
-        answer=document_chain,
+    # chain = RunnablePassthrough.assign(
+    #     context=parse_retriever_input | vectordb.as_retriever(k=5),
+    # ).assign(
+    #     answer=document_chain,
+    # )
+
+
+    # Approach 2 (high level approach)
+    chain = ConversationalRetrievalChain.from_llm(
+        llm,
+        chain_type="stuff",
+        retriever=vectordb.as_retriever(),
+        memory=memory,
+        return_source_documents=True,
     )
+    if chain.memory is not None:
+        print("The conversational retrieval chain has memory.")
+    else:
+        print("The conversational retrieval chain does not have memory.")
+
 
     msg.content = f"`{file.name}` processed. You can now ask questions!"
     await msg.update()
 
-    cl.user_session.set("chain", chain)
+    cl.user_session.set("chain", chain) 
 
 
 @cl.on_message
 async def main(message: cl.Message):
     chain = cl.user_session.get("chain")
-    
-    # response = await chain.acall(message.content, 
-    #                                  callbacks=[
-    #                                      cl.AsyncLangchainCallbackHandler()])
-    response = chain.invoke(
-        {"messages": [
-            HumanMessage(content=message.content)
-        ],
-    }
-    )
-    tool()
-    await cl.Message(response["answer"]).send()
+    # Approach 1
+    # response = chain.invoke({
+    #     "messages": [
+    #         HumanMessage(content=message.content)
+    #     ],
+    # })
+
+    #Approach 2
+    response = await chain.acall(message.content, callbacks=[cl.AsyncLangchainCallbackHandler()])
+    answer = response["answer"]
+    source_documents = response["source_documents"]
+    text_elements = []
+    unique_pages = set()
+
+    if source_documents:
+        for source_idx, source_doc in enumerate(source_documents):
+            source_name = f"source_{source_idx}"
+            page_number = source_doc.metadata['page']
+            page = f"Page {page_number}"
+            text_element_content = source_doc.page_content
+            # text_elements.append(cl.Text(content=text_element_content, name=source_name))
+            if page not in unique_pages:
+                unique_pages.add(page)
+                text_elements.append(cl.Text(content=text_element_content, name=page))
+            # text_elements.append(cl.Text(content=text_element_content, name=page))
+        source_names = [text_el.name for text_el in text_elements]
+        if source_names:
+            answer += f"\n\nSources: {', '.join(source_names)}"
+        else:
+            answer += "\n\nNo sources found"
+
+    ChainOfThought()
+
+    await cl.Message(content=answer, elements=text_elements).send()
