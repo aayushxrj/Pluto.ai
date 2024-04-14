@@ -1,71 +1,106 @@
-# Project Pluto.ai
+# Pluto.ai
 
-Project Pluto.ai is a conversational Retrieval Augmented Generation (RAG) chatbot built with LangChain, Chainlit, and the Claude LLM API for question-answering from documents.
+Pluto.ai is a conversational Retrieval Augmented Generation (RAG) chatbot built with LangChain, Chainlit, and the Claude for question-answering from documents.
 
 ## Quick Start
+
+### Clone the Repository
+
+1. First, clone the repository to your local machine:
+
+```
+git clone https://github.com/aayushxrj/Pluto.ai
+```
+
+### Navigate to the Project Directory
+
+2. Next, navigate to the project directory:
+
+```
+cd ./Pluto.ai/
+```
 
 ### Set up a Virtual Environment
 
 It's recommended to use a virtual environment to keep your project dependencies isolated. Follow these steps to set up a virtual environment:
 
-1. Open your terminal and navigate to the project directory.
-2. Create a new virtual environment:
+3. Create a new virtual environment:
 
-```bash
+```
 python -m venv venv
-Activate the virtual environment:
-bash
+```
+4. Activate the virtual environment:
 
-
-Copy code
-# On Windows
-venv\Scripts\activate
-
-# On Unix or Linux
+#### On Windows
+```
+./venv/Scripts/activate
+```
+#### On Unix or Linux
+```
 source venv/bin/activate
-Install Dependencies
-With your virtual environment activated, install the required dependencies using the following command:
+```
 
-bash
+### Install Dependencies
+4. With your virtual environment activated, install the required dependencies using the following command:
 
-
-Copy code
+```
 pip install -r requirements.txt
-Deactivate the Virtual Environment
-After installing the dependencies, you can deactivate the virtual environment:
+```
 
-bash
+### Deactivate the Virtual Environment
+4. After installing the dependencies, you can deactivate the virtual environment:
 
-
-Copy code
+```
 deactivate
-Set up Anthropic API Key
-Ensure you have an Anthropic API key to access the Claude LLM models. You can obtain an API key from the Anthropic Console.
-Create a .env file in the project root directory and add the following line, replacing your_api_key with your actual API key:
+```
 
-Copy code
+### Set up Anthropic API Key
+Ensure you have an Anthropic API key to access the Claude LLM models. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
+5. Create a .env file in the project root directory and add the following line, replacing your_api_key with your actual API key:
+
+```
 ANTHROPIC_API_KEY=your_api_key
-Run the Application
-Run the following script to start the Chainlit server:
-bash
+```
 
-
-Copy code
+### Run the Application
+6. Run the following script to start the Chainlit server:
+```
 chainlit run app.py -w
-Interact with the application through the Chainlit interface. You can upload a file and ask questions related to the file's content.
-Usage
-Once the Chainlit server is running, you'll be presented with an interface to upload a file.
-After uploading a file, you can type your question in the text box and hit Enter.
-The application will use the Claude LLM API to retrieve relevant information from the uploaded file and provide an answer to your question.
-You can continue asking follow-up questions or upload a new file as desired.
-Contributing
-If you'd like to contribute to Project Pluto.ai, please follow these steps:
+```
 
-Fork the repository
-Create a new branch (git checkout -b feature/your-feature-name)
-Commit your changes (git commit -m 'Add some feature')
-Push to the branch (git push origin feature/your-feature-name)
-Create a new Pull Request
-License
+Interact with the application through the Chainlit interface. You can upload a file and ask questions related to the file's content.
+
+## Usage
+
+Once the Chainlit server is running, you'll be presented with an interface to upload a file.
+
+![Screenshot (744)](https://github.com/aayushxrj/Pluto.ai/assets/111623667/b5ca305a-de88-475b-9db8-02119db42439)
+
+After uploading a file, you can type your question in the text box and hit Enter.
+
+![Screenshot (745)](https://github.com/aayushxrj/Pluto.ai/assets/111623667/0494108b-d8d3-4f4f-a779-48bad4b75dfd)
+
+
+The application utilizes the Anthropic's API to access Claude to extract pertinent information from the uploaded file and furnish a response to your inquiry. It displays the source page, complete with page number and content, which serves as the basis for answering the question.
+
+![Screenshot (746)](https://github.com/aayushxrj/Pluto.ai/assets/111623667/f3e8c33d-1a9b-4d14-988c-02700e51d466)
+
+Thanks to Chainlit, it unveils the entire chain of thought that the RAG pipeline utilizes to arrive at the conclusive output at the end.
+
+![screencapture-localhost-8000-2024-04-14-08_57_00](https://github.com/aayushxrj/Pluto.ai/assets/111623667/f13ad146-0222-4d74-a5ec-004cb8ee9ad7)
+
+You can continue asking follow-up questions or upload a new file as desired.
+
+## Contributing
+
+If you wish to contribute to Project Pluto.ai, please adhere to the following steps:
+
+- **Fork the repository**: Create a new branch (`git checkout -b feature/your-feature-name`)
+- **Commit your changes**: Make your modifications (`git commit -m 'Add some feature'`)
+- **Push to the branch**: Upload your changes (`git push origin feature/your-feature-name`)
+- **Create a new Pull Request**: Submit your alterations for review
+
+## License
+
 Project Pluto.ai is licensed under the MIT License.
 
