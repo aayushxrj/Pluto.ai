@@ -58,6 +58,7 @@ deactivate
 
 ### Set up Anthropic API Key
 Ensure you have an Anthropic API key to access the Claude LLM models. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
+
 5. Create a .env file in the project root directory and add the following line, replacing your_api_key with your actual API key:
 
 ```
