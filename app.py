@@ -205,7 +205,10 @@ async def start():
     # chain = load_qa_chain(llm, chain_type="stuff", memory=memory, prompt=prompt)
     # cl.user_session.set("vectordb", vectordb)
 
+    # Approach 4 (Approach 1 + memory)
+    
 
+    #COMMON TO ALL APPROACHES
     msg.content = f"`{file.name}` processed. You can now ask questions!"
     await msg.update()
 
@@ -221,6 +224,7 @@ async def main(message: cl.Message):
     #         HumanMessage(content=message.content)
     #     ],
     # })
+    # await cl.Message(response["answer"]).send()
 
     # Approach 2
     response = await chain.acall(message.content, callbacks=[cl.AsyncLangchainCallbackHandler()])
@@ -253,8 +257,7 @@ async def main(message: cl.Message):
 
 
 
-    # Approach 3    (Sources link now working and old file cache issue)
-
+    # Approach 3    (Sources link not working and old file cache issue)
     # vectordb = cl.user_session.get("vectordb")
     # docs = vectordb.similarity_search(query=message.content,k=5)
 
@@ -291,3 +294,4 @@ async def main(message: cl.Message):
 
     # await cl.Message(content=answer).send()
 
+    # Approach 4 (Approach 1 + memory)
