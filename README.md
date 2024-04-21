@@ -85,7 +85,7 @@ docker build -t aayushxrj/pluto.ai
 2. Run the Docker container:
 
 ```
-docker run --name pluto -p 8000:8000 -e ANTHROPIC_API_KEY='your_api_key' docker.io/aayushxrj/pluto.ai
+docker run --name pluto -p 8000:8000 -e ANTHROPIC_API_KEY='your_api_key' aayushxrj/pluto.ai
 ```
 
 Replace `your_api_key` with your real Anthropic API key to gain access to the Claude LLM. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
