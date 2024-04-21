@@ -79,12 +79,12 @@ If you have Docker installed and running, you can also run the application using
 1. Build the Docker image locally:
 
 ```
-docker build -t aayushxrj/pluto.ai:latest
+docker build -t aayushxrj/pluto.ai:latest .
 ```
 or directly pull from Docker Hub (recommended):
 
 ```
-docker pull -t aayushxrj/pluto.ai:latest
+docker pull aayushxrj/pluto.ai:latest
 ```
 
 2. Run the Docker container:
