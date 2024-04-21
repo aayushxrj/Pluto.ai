@@ -32,30 +32,30 @@ python -m venv venv
 
 2. Activate the virtual environment:
 
-#### On Windows
+##### On Windows
 ```
 ./venv/Scripts/activate
 ```
-#### On Unix or Linux
+##### On Unix or Linux
 ```
 source venv/bin/activate
 ```
 
-### Install Dependencies
+#### Install Dependencies
 3. With your virtual environment activated, install the required dependencies using the following command:
 
 ```
 pip install -r requirements.txt
 ```
 
-### Deactivate the Virtual Environment
+#### Deactivate the Virtual Environment
 4. After installing the dependencies, you can deactivate the virtual environment:
 
 ```
 deactivate
 ```
 
-### Set up Anthropic API Key
+#### Set up Anthropic API Key
 Ensure you have an Anthropic API key to access the Claude LLM. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
 
 5. Create a .env file in the project root directory and add the following line, replacing your_api_key with your actual API key:
@@ -64,7 +64,7 @@ Ensure you have an Anthropic API key to access the Claude LLM. You can obtain an
 ANTHROPIC_API_KEY=your_api_key
 ```
 
-### Run the Application
+#### Run the Application
 6. Run the following script to start the Chainlit server:
 ```
 chainlit run app.py -w
