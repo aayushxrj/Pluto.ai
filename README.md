@@ -8,30 +8,29 @@ Pluto.ai is a conversational Retrieval Augmented Generation (RAG) chatbot built 
 
 ### Clone the Repository
 
-1. First, clone the repository to your local machine:
-
 ```
 git clone https://github.com/aayushxrj/Pluto.ai
 ```
 
 ### Navigate to the Project Directory
 
-2. Next, navigate to the project directory:
-
 ```
 cd ./Pluto.ai/
 ```
+
+Now you can get the app up and running using either a [virtual environment](https://docs.python.org/3/library/venv.html) or [Docker](https://www.docker.com/).
 
 ### Set up a Virtual Environment
 
 It's recommended to use a virtual environment to keep your project dependencies isolated. Follow these steps to set up a virtual environment:
 
-3. Create a new virtual environment:
+1. Create a new virtual environment:
 
 ```
 python -m venv venv
 ```
-4. Activate the virtual environment:
+
+2. Activate the virtual environment:
 
 #### On Windows
 ```
@@ -43,7 +42,7 @@ source venv/bin/activate
 ```
 
 ### Install Dependencies
-4. With your virtual environment activated, install the required dependencies using the following command:
+3. With your virtual environment activated, install the required dependencies using the following command:
 
 ```
 pip install -r requirements.txt
@@ -72,6 +71,26 @@ chainlit run app.py -w
 ```
 
 Interact with the application through the Chainlit interface. You can upload a file and ask questions related to the file's content.
+
+### Docker Usage
+
+If you have Docker installed and running, you can also run the application using Docker. Follow these steps:
+
+1. Build the Docker image:
+
+```
+docker build -t aayushxrj/pluto.ai
+```
+
+2. Run the Docker container:
+
+```
+docker run --name pluto -p 8000:8000 -e ANTHROPIC_API_KEY='your_api_key' docker.io/aayushxrj/pluto.ai
+```
+
+Replace `your_api_key` with your actual Anthropic API key.
+
+You can access the app at `http://localhost:8000/`
 
 ## Usage
 
