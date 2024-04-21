@@ -4,4 +4,5 @@ langchain==0.1.16
 langchain_anthropic==0.1.11
 langchain_community==0.0.34
 pypdf==4.2.0
+torch==2.2.2
 sentence-transformers==2.7.0
