@@ -56,7 +56,7 @@ deactivate
 ```
 
 ### Set up Anthropic API Key
-Ensure you have an Anthropic API key to access the Claude LLM models. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
+Ensure you have an Anthropic API key to access the Claude LLM. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
 
 5. Create a .env file in the project root directory and add the following line, replacing your_api_key with your actual API key:
 
@@ -88,7 +88,7 @@ docker build -t aayushxrj/pluto.ai
 docker run --name pluto -p 8000:8000 -e ANTHROPIC_API_KEY='your_api_key' docker.io/aayushxrj/pluto.ai
 ```
 
-Replace `your_api_key` with your actual Anthropic API key.
+Replace `your_api_key` with your real Anthropic API key to gain access to the Claude LLM. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
 
 You can access the app at `http://localhost:8000/`
 
