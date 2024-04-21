@@ -76,16 +76,21 @@ Interact with the application through the Chainlit interface. You can upload a f
 
 If you have Docker installed and running, you can also run the application using Docker. Follow these steps:
 
-1. Build the Docker image:
+1. Build the Docker image locally:
 
 ```
-docker build -t aayushxrj/pluto.ai
+docker build -t aayushxrj/pluto.ai:latest
+```
+or directly pull from Docker Hub (recommended):
+
+```
+docker pull -t aayushxrj/pluto.ai:latest
 ```
 
 2. Run the Docker container:
 
 ```
-docker run --name pluto -p 8000:8000 -e ANTHROPIC_API_KEY='your_api_key' aayushxrj/pluto.ai
+docker run --name pluto.ai -p 8000:8000 -e ANTHROPIC_API_KEY='your_api_key' aayushxrj/pluto.ai:latest
 ```
 
 Replace `your_api_key` with your real Anthropic API key to gain access to the Claude LLM. You can obtain an API key from the [Anthropic Console](https://console.anthropic.com/dashboard).
