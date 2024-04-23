@@ -114,7 +114,9 @@ The application utilizes the Anthropic's API to access Claude to extract pertine
 
 Thanks to Chainlit, it unveils the entire chain of thought that the RAG pipeline utilizes to arrive at the conclusive output at the end.
 
-![screencapture-localhost-8000-2024-04-14-08_57_00](https://github.com/aayushxrj/Pluto.ai/assets/111623667/f13ad146-0222-4d74-a5ec-004cb8ee9ad7)
+<!--- ![screencapture-localhost-8000-2024-04-14-08_57_00](https://github.com/aayushxrj/Pluto.ai/assets/111623667/f13ad146-0222-4d74-a5ec-004cb8ee9ad7) --->
+
+![screencapture-localhost-8000-2024-04-23-22_49_52](https://github.com/aayushxrj/Pluto.ai/assets/111623667/2463cccc-d49a-4c91-8ef1-4980db849c28)
 
 You can continue asking follow-up questions or upload a new file as desired.
 
