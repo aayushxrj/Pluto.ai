@@ -4,8 +4,9 @@ load_dotenv()
 
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ChatMessageHistory, ConversationBufferMemory
+# from langchain.chains import ConversationalRetrievalChain
+# from langchain.memory import ConversationBufferMemory
+from langchain.memory import ChatMessageHistory
 from langchain_anthropic import ChatAnthropic
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -16,14 +17,18 @@ from chainlit.types import AskFileResponse
 # For Approach 1
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from typing import Dict
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.messages import HumanMessage
+# from typing import Dict
+# from langchain_core.runnables import RunnablePassthrough
+# from langchain_core.messages import HumanMessage
 
 # For Approach 3
-from langchain.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
+# from langchain.chains.question_answering import load_qa_chain
+# from langchain.prompts import PromptTemplate
 
+# For Aprroach 4
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 llm = ChatAnthropic(temperature=0, model_name="claude-3-opus-20240229")
@@ -72,18 +77,10 @@ def store_embeddings(chunks):
     print(f"Size of vectordb: {vectordb._collection.count()}")
     return vectordb
 
-# Retrieve data from the query
-# def simple_retrieval(vectordb, message: cl.Message):
-#     query = message.content
 
-#     results = vectordb.similarity_search(query, k=5)
-#     retrieved_documents = [result.page_content for result in results]
-
-#     return retrieved_documents
-
-@cl.step
-def ChainOfThought():
-    return "Not working yet"
+# @cl.step
+# def ChainOfThought():
+#     return "Not working yet"
 
 
 @cl.on_chat_start
@@ -156,23 +153,23 @@ async def start():
 
     # Approach 2 (high level approach)
 
-    message_history = ChatMessageHistory()
+    # message_history = ChatMessageHistory()
 
-    memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        input_key="question",
-        output_key="answer",
-        chat_memory=message_history,
-        return_messages=True,
-    )
+    # memory = ConversationBufferMemory(
+    #     memory_key="chat_history",
+    #     input_key="question",
+    #     output_key="answer",
+    #     chat_memory=message_history,
+    #     return_messages=True,
+    # )
 
-    chain = ConversationalRetrievalChain.from_llm(
-        llm,
-        chain_type="stuff",
-        retriever=vectordb.as_retriever(search_type="similarity", search_kwargs={"k":5}),
-        memory=memory,
-        return_source_documents=True,
-    )
+    # chain = ConversationalRetrievalChain.from_llm(
+    #     llm,
+    #     chain_type="stuff",
+    #     retriever=vectordb.as_retriever(search_type="similarity", search_kwargs={"k":5}),
+    #     memory=memory,
+    #     return_source_documents=True,
+    # )
 
     # debugging
     # if chain.memory is not None:
@@ -206,8 +203,59 @@ async def start():
     # cl.user_session.set("vectordb", vectordb)
 
     # Approach 4 (Approach 1 + memory)
-    
 
+
+    retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k":5})
+
+    ### Contextualize question ###
+    contextualize_q_system_prompt = """Given a chat history and the latest user question \
+    which might reference context in the chat history, formulate a standalone question \
+    which can be understood without the chat history. Do NOT answer the question, \
+    just reformulate it if needed and otherwise return it as is."""
+    contextualize_q_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", contextualize_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+    history_aware_retriever = create_history_aware_retriever(
+    llm, retriever, contextualize_q_prompt
+    )
+    ### Answer question ###
+    qa_system_prompt = """You are an assistant for question-answering tasks. \
+    Use the following pieces of retrieved context to answer the question. \
+    If the context doesn't contain any relevant information to the question, don't make something up and just say that you don't know. \
+
+    {context}"""
+    qa_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", qa_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+
+    ### Statefully manage chat history ###
+    store = {}
+
+    def get_session_history(session_id: str) -> BaseChatMessageHistory:
+        if session_id not in store:
+            store[session_id] = ChatMessageHistory()
+        return store[session_id]
+
+    chain = RunnableWithMessageHistory(
+        rag_chain,
+        get_session_history,
+        input_messages_key="input",
+        history_messages_key="chat_history",
+        output_messages_key="answer",
+    )
+        
     #COMMON TO ALL APPROACHES
     msg.content = f"`{file.name}` processed. You can now ask questions!"
     await msg.update()
@@ -218,6 +266,7 @@ async def start():
 @cl.on_message
 async def main(message: cl.Message):
     chain = cl.user_session.get("chain")
+    
     # Approach 1
     # response = chain.invoke({
     #     "messages": [
@@ -227,33 +276,33 @@ async def main(message: cl.Message):
     # await cl.Message(response["answer"]).send()
 
     # Approach 2
-    response = await chain.acall(message.content, callbacks=[cl.AsyncLangchainCallbackHandler()])
-    print(response)                  # debugging
-    answer = response["answer"]
-    source_documents = response["source_documents"]
-    text_elements = []
-    unique_pages = set()
+    # response = await chain.acall(message.content, callbacks=[cl.AsyncLangchainCallbackHandler()])
+    # print(response)                  # debugging
+    # answer = response["answer"]
+    # source_documents = response["source_documents"]
+    # text_elements = []
+    # unique_pages = set()
 
-    if source_documents:
-        for source_idx, source_doc in enumerate(source_documents):
-            source_name = f"source_{source_idx}"
-            page_number = source_doc.metadata['page']
-            page = f"Page {page_number}"
-            text_element_content = source_doc.page_content
-            # text_elements.append(cl.Text(content=text_element_content, name=source_name))
-            if page not in unique_pages:
-                unique_pages.add(page)
-                text_elements.append(cl.Text(content=text_element_content, name=page))
-            # text_elements.append(cl.Text(content=text_element_content, name=page))
-        source_names = [text_el.name for text_el in text_elements]
-        if source_names:
-            answer += f"\n\nSources: {', '.join(source_names)}"
-        else:
-            answer += "\n\nNo sources found"
+    # if source_documents:
+    #     for source_idx, source_doc in enumerate(source_documents):
+    #         source_name = f"source_{source_idx}"
+    #         page_number = source_doc.metadata['page']
+    #         page = f"Page {page_number}"
+    #         text_element_content = source_doc.page_content
+    #         # text_elements.append(cl.Text(content=text_element_content, name=source_name))
+    #         if page not in unique_pages:
+    #             unique_pages.add(page)
+    #             text_elements.append(cl.Text(content=text_element_content, name=page))
+    #         # text_elements.append(cl.Text(content=text_element_content, name=page))
+    #     source_names = [text_el.name for text_el in text_elements]
+    #     if source_names:
+    #         answer += f"\n\nSources: {', '.join(source_names)}"
+    #     else:
+    #         answer += "\n\nNo sources found"
 
     # ChainOfThought()
 
-    await cl.Message(content=answer, elements=text_elements).send()
+    # await cl.Message(content=answer, elements=text_elements).send()
 
 
 
@@ -295,3 +344,35 @@ async def main(message: cl.Message):
     # await cl.Message(content=answer).send()
 
     # Approach 4 (Approach 1 + memory)
+    response =  await chain.ainvoke(
+        {"input": message.content},
+        config={"configurable": {"session_id": "abc123"},
+                "callbacks":[cl.AsyncLangchainCallbackHandler()]},         
+    )
+
+    # print(response) #debugging
+
+    answer = response["answer"]
+
+    source_documents = response["context"]
+    text_elements = []
+    unique_pages = set()
+
+    if source_documents:
+        for source_idx, source_doc in enumerate(source_documents):
+            source_name = f"source_{source_idx}"
+            page_number = source_doc.metadata['page']
+            page = f"Page {page_number}"
+            text_element_content = source_doc.page_content
+            # text_elements.append(cl.Text(content=text_element_content, name=source_name))
+            if page not in unique_pages:
+                unique_pages.add(page)
+                text_elements.append(cl.Text(content=text_element_content, name=page))
+            # text_elements.append(cl.Text(content=text_element_content, name=page))
+        source_names = [text_el.name for text_el in text_elements]
+        if source_names:
+            answer += f"\n\nSources: {', '.join(source_names)}"
+        else:
+            answer += "\n\nNo sources found"
+
+    await cl.Message(content=answer, elements=text_elements).send()
